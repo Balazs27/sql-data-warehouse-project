@@ -1,59 +1,137 @@
-**Data Warehouse and Analytics Project**
+# Data Warehouse & Analytics Project
 
-**Welcome to the Data Warehouse and Analytics Project repository!**
+Welcome to the **Data Warehouse & Analytics Project** repository.
 
-This project demonstrates a comprehensive data warehousing and analytics solution, from building a data warehouse to generating actionable insights. Designed as a portfolio project, it highlights industry best practices in data engineering and analytics.
+This project demonstrates the design and implementation of a **modern data warehouse** using a **Medallion Architecture (Bronze–Silver–Gold)** approach. Built as a portfolio project, it showcases industry best practices in **data engineering, data modeling, and analytics**, using PostgreSQL as the warehouse technology.
 
+---
 
-**DATA ARCHITECTURE:**
+## 📐 Data Architecture
 
-The data architecture for this project follows Medallion Architecture Bronze, Silver, and Gold layers:
-<img width="1300" height="746" alt="image" src="https://github.com/user-attachments/assets/2076bf96-9e24-4158-b557-28ae0cd15144" />
+The data architecture follows the **Medallion Architecture**, consisting of three logical layers:
 
-Bronze Layer: Stores raw data as-is from the source systems. Data is ingested from CSV Files into PostgreSQL Database.
-Silver Layer: This layer includes data cleansing, standardization, and normalization processes to prepare data for analysis.
-Gold Layer: Houses business-ready data modeled into a star schema required for reporting and analytics.
+![Medallion Architecture](https://github.com/user-attachments/assets/2076bf96-9e24-4158-b557-28ae0cd15144)
 
+### 🥉 Bronze Layer — Raw Data
+- Stores raw source data **as-is**
+- Data ingested from CSV files
+- Represents source systems without transformation
+- Serves as the immutable ingestion layer
 
-**PROJECT OVERVIEW:**
+### 🥈 Silver Layer — Clean & Conformed Data
+- Data cleansing, standardization, and normalization
+- Business rules and transformations applied
+- Data prepared for analytical modeling
+- Ensures improved data quality and consistency
 
-This project involves:
+### 🥇 Gold Layer — Analytics-Ready Data
+- Business-ready data modeled using a **star schema**
+- Fact and dimension tables optimized for BI tools
+- Designed for analytical queries and reporting
+- Final consumption layer for stakeholders
 
-Data Architecture: Designing a Modern Data Warehouse Using Medallion Architecture Bronze, Silver, and Gold layers.
-ETL Pipelines: Extracting, transforming, and loading data from source systems into the warehouse.
-Data Modeling: Developing fact and dimension tables optimized for analytical queries.
-Analytics & Reporting: Creating SQL-based reports and dashboards for actionable insights.
+---
 
-This repository is an excellent resource for professionals and students looking to showcase expertise in:
-SQL Development
-Data Architect
-Data Engineering
-ETL Pipeline Developer
-Data Modeling
-Data Analytics
+## 📌 Project Overview
 
+This project covers the full lifecycle of a data warehouse solution:
 
-**PROJECT REQUIREMENTS:**
+- **Data Architecture**
+  - Designing a modern warehouse using Medallion Architecture
+- **ETL Pipelines**
+  - Extracting data from source systems
+  - Transforming and cleansing data across layers
+  - Loading curated datasets into analytics-ready models
+- **Data Modeling**
+  - Implementing fact and dimension tables
+  - Designing a star schema optimized for analytics
+- **Analytics & Reporting**
+  - Writing SQL-based analytical queries
+  - Enabling actionable business insights
 
-Building the Data Warehouse (Data Engineering)
+---
 
-**Objective:**
-Develop a modern data warehouse using PostgreSQL to consolidate sales data, enabling analytical reporting and informed decision-making.
+## 🛠️ Technologies Used
 
-Specifications
-Data Sources: Import data from two source systems (ERP and CRM) provided as CSV files.
-Data Quality: Cleanse and resolve data quality issues prior to analysis.
-Integration: Combine both sources into a single, user-friendly data model designed for analytical queries.
-Scope: Focus on the latest dataset only; historization of data is not required.
-Documentation: Provide clear documentation of the data model to support both business stakeholders and analytics teams.
+- **Database:** PostgreSQL
+- **Query Language:** SQL
+- **Architecture Pattern:** Medallion (Bronze / Silver / Gold)
+- **Data Modeling:** Star Schema
+- **Source Format:** CSV files
+- **Analytics:** SQL-based reporting
 
+---
 
-**BI: Analytics & Reporting (Data Analysis)**
+## 🎯 Project Requirements
 
-Objective
-Develop SQL-based analytics to deliver detailed insights into:
+### Building the Data Warehouse (Data Engineering)
 
-Customer Behavior
-Product Performance
-Sales Trends
-These insights empower stakeholders with key business metrics, enabling strategic decision-making.
+**Objective**
+
+Develop a modern data warehouse using PostgreSQL to consolidate sales-related data and enable analytical reporting and informed decision-making.
+
+**Specifications**
+
+- **Data Sources**
+  - Two source systems (ERP and CRM)
+  - Data provided as CSV files
+- **Data Quality**
+  - Data cleansing and validation prior to analytics
+- **Integration**
+  - Combine multiple sources into a unified analytical model
+- **Scope**
+  - Focus on the latest available data
+  - No historization or slowly changing dimensions required
+- **Documentation**
+  - Clear documentation of the data model
+  - Designed for both business stakeholders and analytics teams
+
+---
+
+## 📊 BI, Analytics & Reporting
+
+**Objective**
+
+Develop SQL-based analytics to deliver insights into:
+
+- Customer behavior
+- Product performance
+- Sales trends
+
+These insights support stakeholders with **key business metrics**, enabling data-driven and strategic decision-making.
+
+---
+
+## 💼 Skills Demonstrated
+
+This project demonstrates hands-on experience in:
+
+- Data Warehousing concepts
+- Medallion Architecture design
+- ETL pipeline development
+- SQL-based data transformation
+- Data quality management
+- Dimensional data modeling
+- Analytics-ready schema design
+
+It is particularly relevant for roles such as:
+
+- Data Engineer
+- Analytics Engineer
+- Data Architect
+- ETL / Pipeline Developer
+- Data Analyst
+
+---
+
+## 📝 Notes
+
+- PostgreSQL is used as the warehouse technology for this project.
+- In cloud data warehouses (e.g. Snowflake, BigQuery), similar architectures would typically be implemented using multiple databases.
+- This project focuses on **core data engineering principles**, independent of specific vendor tooling.
+
+---
+
+## 👤 Author
+
+Built by **Balázs Illovai** as part of a broader portfolio focused on transitioning toward **analytics engineering and data infrastructure roles**.
