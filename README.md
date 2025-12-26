@@ -104,7 +104,7 @@ Develop SQL-based analytics to deliver insights into:
 These insights support stakeholders with **key business metrics**, enabling data-driven and strategic decision-making.
 
 
-See the [`scripts/analytics`](./analytics) folder for:
+See the [`scripts/`](./analytics) folder for:
 - Exploratory data analysis
 - Advanced analytical patterns
 - Business KPIs and reporting views
