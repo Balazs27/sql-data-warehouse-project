@@ -1,0 +1,295 @@
+--Exploratory Data Analysis Project
+
+--First Step is the Database Exploration:
+--Explore all objects in the database:
+SELECT * FROM information_schema.tables;
+
+--Explore all columns in the database
+SELECT * FROM information_schema.columns;
+--Checking all the columns inside our dim_customers table:
+SELECT * FROM information_schema.columns
+WHERE table_name = 'dim_customers';
+
+
+--Second Step is the Dimensions Exploration:
+--We explore all the countries our customers come from:
+SELECT DISTINCT country FROM dim_customers;
+
+--We also explore all the categories "The Major Divisions"
+SELECT DISTINCT category FROM dim_products;
+
+--Then we check what subcategories we have within each category:
+SELECT DISTINCT category, subcategory FROM dim_products
+ORDER BY 1, 2;
+
+--Last but not least we wanna also see our products in each category and subcategory:
+SELECT DISTINCT category, subcategory, product_name FROM dim_products
+ORDER BY 1, 2, 3;
+
+
+--Third Step is the Date Exploration
+--Find the date of the first and last order:
+SELECT
+    MIN(order_date) AS first_order_date,
+    MAX(order_date) AS last_order_date
+FROM fact_sales;
+
+--How many years of sales available:
+SELECT
+    MIN(order_date) AS first_order_date,
+    MAX(order_date) AS last_order_date,
+    EXTRACT(year FROM MIN(order_date)) AS first_year,
+    EXTRACT(year FROM MAX(order_date)) AS last_year,
+    EXTRACT(year FROM MAX(order_date)) - EXTRACT(year FROM MIN(order_date)) AS order_range_years
+FROM fact_sales;
+
+--Find the oldest and youngest customer:
+SELECT
+    MIN(birthdate) AS oldest_customer,
+    MAX(birthdate) AS youngest_customer
+FROM dim_customers;
+
+--Turning it into age:
+SELECT
+    EXTRACT(year FROM CURRENT_DATE) - EXTRACT(year FROM MIN(birthdate)) AS oldest_customer,
+    EXTRACT(year FROM CURRENT_DATE) - EXTRACT(year FROM MAX(birthdate)) AS youngest_customer
+FROM dim_customers;
+
+
+--Fourth Step is the Measures Exploration
+SELECT * FROM fact_sales LIMIT 10;
+
+--Find the total sales:
+SELECT SUM(sales_amount) FROM fact_sales;
+
+--Find how many items are sold:
+SELECT SUM(quantity) FROM fact_sales;
+
+--Find the average selling price:
+SELECT ROUND(AVG(price), 2) FROM fact_sales;
+
+--Find the total number of orders:
+/*
+SELECT COUNT(order_number) AS total_orders FROM fact_sales;
+SELECT order_number, COUNT(order_number) AS total_orders FROM fact_sales
+GROUP BY 1
+HAVING COUNT(order_number) > 1;
+*/
+SELECT COUNT(DISTINCT order_number) AS total_orders FROM fact_sales;
+
+--Find the total number of products;
+SELECT COUNT(product_key) AS total_products FROM dim_products;
+SELECT COUNT(DISTINCT product_key) AS total_products FROM dim_products;
+
+--Find the total number of customers;
+SELECT COUNT(customer_key) AS total_customer FROM dim_customers;
+SELECT COUNT(DISTINCT customer_key) AS total_customer FROM dim_customers;
+
+--Find the total number of customers that has placed an order:
+SELECT COUNT(DISTINCT customer_key) AS total_customer FROM fact_sales;
+
+--Generate a report that shows all key metrics of the business:
+SELECT 'Total Sales' AS measure_name, SUM(sales_amount) AS measure_value FROM fact_sales
+UNION ALL
+SELECT 'Total Quantity' AS measure_name, SUM(quantity) AS measure_value FROM fact_sales
+UNION ALL
+SELECT 'Average Price' AS measure_name, ROUND(AVG(price), 2) AS measure_value FROM fact_sales
+UNION ALL
+SELECT 'Total Nr. Order' AS measure_name, COUNT(DISTINCT order_number) AS total_orders FROM fact_sales
+UNION ALL
+SELECT 'Total Nr. Products' AS measure_name, COUNT(DISTINCT product_key) AS total_products FROM dim_products
+UNION ALL
+SELECT 'Total Nr. Customers' AS measure_name, COUNT(DISTINCT customer_key) AS total_customer FROM dim_customers;
+
+
+--Fifth Step is the Magnitude Analysis
+--Magnitude Analysis is comparing the measure values by categories
+--It helps us understand the importance of different categories
+--Formula: AGG[Measure] BY [Dimension]
+--Find the total customers by countries
+SELECT
+    country,
+    COUNT(customer_key) AS total_customers
+FROM dim_customers
+GROUP BY country
+ORDER BY total_customers DESC;
+
+--Find the total customers by gender
+SELECT
+    gender,
+    COUNT(customer_key) AS total_customers
+FROM dim_customers
+GROUP BY gender
+ORDER BY total_customers DESC;
+
+--Find the total products by categories
+SELECT
+    category,
+    COUNT(product_key) AS total_products
+FROM dim_products
+GROUP BY category
+ORDER BY total_products DESC;
+
+--What is the average cost in each category
+SELECT
+    category,
+    ROUND(AVG(product_cost), 2) AS avg_cost
+FROM dim_products
+GROUP BY category
+ORDER BY avg_cost DESC;
+
+--What is the total revenue generated for each category
+SELECT * FROM dim_products;
+SELECT * FROM fact_sales;
+SELECT
+    p.category,
+    SUM(s.sales_amount) AS total_revenue
+FROM fact_sales s
+LEFT JOIN dim_products p
+ON s.product_key = p.product_key
+GROUP BY p.category
+ORDER BY total_revenue DESC;
+
+--Find the total revenue generated by each customer:
+SELECT * FROM dim_customers;
+SELECT
+    c.customer_id,
+    c.first_name,
+    c.last_name,
+    SUM(s.sales_amount) AS total_revenue
+FROM fact_sales s
+LEFT JOIN dim_customers c
+ON s.customer_key = c.customer_key
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_revenue DESC;
+
+--What is the distribution of sold items across countries:
+SELECT * FROM dim_customers;
+SELECT
+    c.country,
+    SUM(s.quantity) AS sold_items
+FROM fact_sales s
+LEFT JOIN dim_customers c
+ON s.customer_key = c.customer_key
+GROUP BY c.country
+ORDER BY sold_items DESC;
+
+
+--Sixth Step is the Ranking Analysis
+--Ranking analysis is ordering the values of dimensions by measure
+--In order to identify the Top N Performers and the Bottom N Performers
+--Formula: RANK[Dimension] BY AGG[Measure]
+--For example: Rank Countries by Total Sales
+--Which 5 products generate the highest revenue? (With CTE)
+WITH ranked_products AS(
+    SELECT
+        p.product_name,
+        SUM(s.sales_amount) AS total_revenue,
+        ROW_NUMBER() OVER(ORDER BY SUM(s.sales_amount) DESC) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_products p
+    ON s.product_key = p.product_key
+    GROUP BY p.product_name
+)
+SELECT * FROM ranked_products
+WHERE rank BETWEEN 1 AND 5;
+
+--Which 5 products generate the highest revenue? (With Subquery)
+SELECT * FROM (
+    SELECT
+        p.product_name,
+        SUM(s.sales_amount) AS total_revenue,
+        ROW_NUMBER() OVER(ORDER BY SUM(s.sales_amount) DESC) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_products p
+    ON s.product_key = p.product_key
+    GROUP BY p.product_name ) t
+WHERE rank <= 5;
+
+--What are the 5 worst-performing products in terms of sales? (With CTE)
+WITH ranked_products AS(
+    SELECT
+        p.product_name,
+        SUM(s.sales_amount) AS total_revenue,
+        ROW_NUMBER() OVER(ORDER BY SUM(s.sales_amount)) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_products p
+    ON s.product_key = p.product_key
+    GROUP BY p.product_name
+)
+SELECT * FROM ranked_products
+WHERE rank BETWEEN 1 AND 5;
+
+--What are the 5 worst-performing products in terms of sales? (With Subquery)
+SELECT * FROM (
+    SELECT
+        p.product_name,
+        SUM(s.sales_amount) AS total_revenue,
+        ROW_NUMBER() OVER(ORDER BY SUM(s.sales_amount)) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_products p
+    ON s.product_key = p.product_key
+    GROUP BY p.product_name ) t
+WHERE rank <= 5;
+
+--Find the top 10 customers who have generated the highest revenue (With CTE)
+WITH ranked_customers AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(s.sales_amount) AS total_revenue,
+        ROW_NUMBER() OVER (ORDER BY SUM(s.sales_amount) DESC) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_customers c
+    ON s.customer_key = c.customer_key
+    GROUP BY c.customer_id, c.first_name, c.last_name
+)
+SELECT * FROM ranked_customers
+WHERE rank <= 10;
+
+--Find the top 10 customers who have generated the highest revenue (With Subquery)
+SELECT * FROM (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        SUM(s.sales_amount) AS total_revenue,
+        ROW_NUMBER() OVER (ORDER BY SUM(s.sales_amount) DESC) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_customers c
+    ON s.customer_key = c.customer_key
+    GROUP BY c.customer_id, c.first_name, c.last_name
+    ) t
+WHERE rank <= 10;
+
+--Find the 3 customers with the fewest orders placed (With CTE)
+WITH ranked_customers AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        COUNT(DISTINCT s.order_number) AS total_orders,
+        ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT s.order_number)) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_customers c
+    ON s.customer_key = c.customer_key
+    GROUP BY c.customer_id, c.first_name, c.last_name
+)
+SELECT * FROM ranked_customers
+WHERE rank <= 3;
+
+--Find the 3 customers with the fewest orders placed (With Subquery)
+SELECT * FROM (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        COUNT(DISTINCT s.order_number) AS total_orders,
+        ROW_NUMBER() OVER (ORDER BY COUNT(DISTINCT s.order_number)) AS rank
+    FROM fact_sales s
+    LEFT JOIN dim_customers c
+    ON s.customer_key = c.customer_key
+    GROUP BY c.customer_id, c.first_name, c.last_name
+) t
+WHERE rank <= 3;
