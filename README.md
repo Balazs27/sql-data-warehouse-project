@@ -90,6 +90,9 @@ Develop a modern data warehouse using PostgreSQL to consolidate sales-related da
 
 ## 📊 BI, Analytics & Reporting
 
+In addition to building the data warehouse, this project includes
+SQL-based analytics built on top of the Gold layer.
+
 **Objective**
 
 Develop SQL-based analytics to deliver insights into:
@@ -99,6 +102,13 @@ Develop SQL-based analytics to deliver insights into:
 - Sales trends
 
 These insights support stakeholders with **key business metrics**, enabling data-driven and strategic decision-making.
+
+
+See the [`analytics/`](./analytics) folder for:
+- Exploratory data analysis
+- Advanced analytical patterns
+- Business KPIs and reporting views
+
 
 ---
 
