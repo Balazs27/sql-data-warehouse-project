@@ -685,3 +685,323 @@ SELECT
     SUM(total_sales) AS total_sales
 FROM report_customers
 GROUP BY customer_segment;
+
+
+--Step 7: Build Product Report
+/*
+
+============================================================================
+ Product Report
+============================================================================
+Purpose:
+    -This report consolidates key product metrics and behaviors
+
+Highlights:
+    1) Gathers essential fields such as product name, category, subcategory and cost
+    2) Segments products into by revenue to identify high performers, mid range and low performers
+    3) Aggregates product-level metrics:
+        -total orders
+        -total sales
+        -total quantity sold
+        -total customers (unique)
+        -lifespan (in months)
+    4) Calculates Valuable KPIs:
+        -recency (months since last sale)
+        -average order value --> total sales / total nr. of orders
+        -average monthly revenue --> total sales / nr. of months
+============================================================================
+ */
+--Step 1: Base Query: Retrieves core columns from table
+SELECT
+    s.order_number,
+    s.customer_key,
+    s.order_date,
+    s.sales_amount,
+    s.quantity,
+    p.product_key,
+    p.product_name,
+    p.category,
+    p.subcategory,
+    p.product_cost
+FROM fact_sales s
+LEFT JOIN dim_products p
+ON s.product_key = p.product_key
+WHERE s.order_date IS NOT NULL;
+
+--Step 2: Aggregating product-level metrics
+WITH base_query AS (
+
+    SELECT
+    s.order_number,
+    s.customer_key,
+    s.order_date,
+    s.sales_amount,
+    s.quantity,
+    p.product_key,
+    p.product_name,
+    p.category,
+    p.subcategory,
+    p.product_cost
+FROM fact_sales s
+LEFT JOIN dim_products p
+ON s.product_key = p.product_key
+WHERE s.order_date IS NOT NULL
+)
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    COUNT(DISTINCT order_number) AS total_orders,
+    SUM(sales_amount) AS total_sales,
+    SUM(quantity) AS total_quantity,
+    ROUND(AVG(sales_amount / quantity), 2) AS average_selling_price,
+    COUNT(DISTINCT customer_key) AS total_customers,
+    MAX(order_date) AS last_sale_date,
+    (EXTRACT(YEAR FROM MAX(order_date)) - EXTRACT(YEAR FROM MIN(order_date))) * 12 +
+    (EXTRACT(MONTH FROM MAX(order_date)) - EXTRACT(MONTH FROM MIN(order_date))) AS product_lifespan_months
+FROM base_query
+GROUP BY product_key, product_name, category, subcategory, product_cost;
+
+----Step 3: Segmenting our products based on Revenue
+WITH base_query AS (
+
+    SELECT
+    s.order_number,
+    s.customer_key,
+    s.order_date,
+    s.sales_amount,
+    s.quantity,
+    p.product_key,
+    p.product_name,
+    p.category,
+    p.subcategory,
+    p.product_cost
+FROM fact_sales s
+LEFT JOIN dim_products p
+ON s.product_key = p.product_key
+WHERE s.order_date IS NOT NULL
+), aggregated_metrics AS (
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    COUNT(DISTINCT order_number) AS total_orders,
+    SUM(sales_amount) AS total_sales,
+    SUM(quantity) AS total_quantity,
+    ROUND(AVG(sales_amount / quantity), 2) AS average_selling_price,
+    COUNT(DISTINCT customer_key) AS total_customers,
+    MAX(order_date) AS last_sale_date,
+    (EXTRACT(YEAR FROM MAX(order_date)) - EXTRACT(YEAR FROM MIN(order_date))) * 12 +
+    (EXTRACT(MONTH FROM MAX(order_date)) - EXTRACT(MONTH FROM MIN(order_date))) AS product_lifespan_months
+FROM base_query
+GROUP BY product_key, product_name, category, subcategory, product_cost
+)
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    total_orders,
+    total_sales,
+    CASE
+        WHEN total_sales < 100000 THEN 'Low Performer'
+        WHEN total_sales BETWEEN 100000 AND 1000000 THEN 'Mid Range'
+        ELSE 'High Performer'
+    END AS product_segments,
+    total_quantity,
+    average_selling_price,
+    total_customers,
+    last_sale_date,
+    product_lifespan_months
+FROM aggregated_metrics;
+
+----Step 4: Calculating the Valuable KPIs:
+WITH base_query AS (
+
+SELECT
+    s.order_number,
+    s.customer_key,
+    s.order_date,
+    s.sales_amount,
+    s.quantity,
+    p.product_key,
+    p.product_name,
+    p.category,
+    p.subcategory,
+    p.product_cost
+FROM fact_sales s
+LEFT JOIN dim_products p
+ON s.product_key = p.product_key
+WHERE s.order_date IS NOT NULL
+), aggregated_metrics AS (
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    COUNT(DISTINCT order_number) AS total_orders,
+    SUM(sales_amount) AS total_sales,
+    SUM(quantity) AS total_quantity,
+    ROUND(AVG(sales_amount / quantity), 2) AS average_selling_price,
+    COUNT(DISTINCT customer_key) AS total_customers,
+    MAX(order_date) AS last_sale_date,
+    (EXTRACT(YEAR FROM MAX(order_date)) - EXTRACT(YEAR FROM MIN(order_date))) * 12 +
+    (EXTRACT(MONTH FROM MAX(order_date)) - EXTRACT(MONTH FROM MIN(order_date))) AS product_lifespan_months
+FROM base_query
+GROUP BY product_key, product_name, category, subcategory, product_cost
+), product_segments AS (
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    total_orders,
+    total_sales,
+    CASE
+        WHEN total_sales < 100000 THEN 'Low Performer'
+        WHEN total_sales BETWEEN 100000 AND 1000000 THEN 'Mid Range'
+        ELSE 'High Performer'
+    END AS product_segment,
+    total_quantity,
+    average_selling_price,
+    total_customers,
+    last_sale_date,
+    product_lifespan_months
+FROM aggregated_metrics
+)
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    total_orders,
+    total_sales,
+    CASE
+        WHEN total_sales = 0 THEN 0
+        ELSE total_sales / total_orders
+    END AS average_order_value,
+    CASE
+        WHEN product_lifespan_months = 0 THEN total_sales
+        ELSE ROUND(total_sales / product_lifespan_months, 2)
+    END AS average_monthly_revenue,
+    product_segment,
+    total_quantity,
+    average_selling_price,
+    total_customers,
+    last_sale_date,
+    (EXTRACT(YEAR FROM CURRENT_DATE) - EXTRACT(YEAR FROM last_sale_date)) * 12 +
+    (EXTRACT(MONTH FROM CURRENT_DATE) - EXTRACT(MONTH FROM last_sale_date)) AS recency,
+    product_lifespan_months
+FROM product_segments;
+
+
+--Step 5: We create a View out of our Query so then we can share it with other Analysts and can be used in a dashboard
+CREATE VIEW report_products AS
+WITH base_query AS (
+
+SELECT
+    s.order_number,
+    s.customer_key,
+    s.order_date,
+    s.sales_amount,
+    s.quantity,
+    p.product_key,
+    p.product_name,
+    p.category,
+    p.subcategory,
+    p.product_cost
+FROM fact_sales s
+LEFT JOIN dim_products p
+ON s.product_key = p.product_key
+WHERE s.order_date IS NOT NULL
+), aggregated_metrics AS (
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    COUNT(DISTINCT order_number) AS total_orders,
+    SUM(sales_amount) AS total_sales,
+    SUM(quantity) AS total_quantity,
+    ROUND(AVG(sales_amount / quantity), 2) AS average_selling_price,
+    COUNT(DISTINCT customer_key) AS total_customers,
+    MAX(order_date) AS last_sale_date,
+    (EXTRACT(YEAR FROM MAX(order_date)) - EXTRACT(YEAR FROM MIN(order_date))) * 12 +
+    (EXTRACT(MONTH FROM MAX(order_date)) - EXTRACT(MONTH FROM MIN(order_date))) AS product_lifespan_months
+FROM base_query
+GROUP BY product_key, product_name, category, subcategory, product_cost
+), product_segments AS (
+
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    total_orders,
+    total_sales,
+    CASE
+        WHEN total_sales < 100000 THEN 'Low Performer'
+        WHEN total_sales BETWEEN 100000 AND 1000000 THEN 'Mid Range'
+        ELSE 'High Performer'
+    END AS product_segment,
+    total_quantity,
+    average_selling_price,
+    total_customers,
+    last_sale_date,
+    product_lifespan_months
+FROM aggregated_metrics
+)
+SELECT
+    product_key,
+    product_name,
+    category,
+    subcategory,
+    product_cost,
+    total_orders,
+    total_sales,
+    CASE
+        WHEN total_sales = 0 THEN 0
+        ELSE total_sales / total_orders
+    END AS average_order_value,
+    CASE
+        WHEN product_lifespan_months = 0 THEN total_sales
+        ELSE ROUND(total_sales / product_lifespan_months, 2)
+    END AS average_monthly_revenue,
+    product_segment,
+    total_quantity,
+    average_selling_price,
+    total_customers,
+    last_sale_date,
+    (EXTRACT(YEAR FROM CURRENT_DATE) - EXTRACT(YEAR FROM last_sale_date)) * 12 +
+    (EXTRACT(MONTH FROM CURRENT_DATE) - EXTRACT(MONTH FROM last_sale_date)) AS recency,
+    product_lifespan_months
+FROM product_segments;
+
+
+--Checking our View
+SELECT * FROM report_products;
+
+--Doing a quick analysis on top of the view
+--Total sales and products by product segment
+SELECT
+    product_segment,
+    COUNT(product_key) AS product,
+    SUM(total_sales) AS total_sales
+FROM report_products
+GROUP BY product_segment;
