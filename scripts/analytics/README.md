@@ -44,7 +44,7 @@ This analysis applies more advanced analytical patterns, including:
 - Customer lifecycle and behavioral segmentation
 - KPI construction for reporting and dashboards
 
-The final section builds a reusable **customer reporting view** that can be
+The final section builds a reusable **customer and product reporting view** that can be
 shared with other analysts or connected directly to BI tools.
 
 ---
